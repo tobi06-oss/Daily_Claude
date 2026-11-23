@@ -1,0 +1,195 @@
+import { useSyncExternalStore } from 'react'
+import { logicalToday, nowIso, uid } from './date'
+import { sampleData } from './sample'
+import type { Data, EventException, EventItem, JournalEntry, Task } from './types'
+
+const KEY = 'lifeplanner.v1'
+
+function load(): Data {
+  try {
+    const raw = localStorage.getItem(KEY)
+    if (raw) {
+      const d = JSON.parse(raw) as Data
+      if (d && d.version === 1) return d
+    }
+  } catch {
+    /* 저장소를 못 쓰면 메모리에서만 동작 */
+  }
+  return sampleData(logicalToday(4))
+}
+
+let data: Data = load()
+const listeners = new Set<() => void>()
+let saveTimer: number | undefined
+
+function persist() {
+  window.clearTimeout(saveTimer)
+  saveTimer = window.setTimeout(() => {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(data))
+    } catch {
+      /* 용량 초과 등: 무시 */
+    }
+  }, 150)
+}
+window.addEventListener('pagehide', () => {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(data))
+  } catch {
+    /* noop */
+  }
+})
+
+function set(next: Data) {
+  data = next
+  persist()
+  listeners.forEach((l) => l())
+}
+
+export function useData() {
+  return useSyncExternalStore(
+    (l) => {
+      listeners.add(l)
+      return () => listeners.delete(l)
+    },
+    () => data
+  )
+}
+export const getData = () => data
+
+const touch = <T extends { updated_at: string; rev: number }>(x: T): T => ({
+  ...x,
+  updated_at: nowIso(),
+  rev: x.rev + 1,
+})
+const meta = () => {
+  const n = nowIso()
+  return { id: uid(), created_at: n, updated_at: n, deleted_at: null, rev: 1 }
+}
+
+// ── 실행 취소: 바뀌기 직전 상태를 하나 보관 ──
+let undoSnap: Data | null = null
+export function snapshot() {
+  undoSnap = data
+}
+export function undo() {
+  if (undoSnap) {
+    set(undoSnap)
+    undoSnap = null
+  }
+}
+
+// ── 일정 ──
+export function addEvent(e: Omit<EventItem, keyof ReturnType<typeof meta>>) {
+  const ev: EventItem = { ...meta(), ...e }
+  set({ ...data, events: [...data.events, ev] })
+  return ev
+}
+export function updateEvent(id: string, patch: Partial<EventItem>) {
+  set({ ...data, events: data.events.map((e) => (e.id === id ? touch({ ...e, ...patch }) : e)) })
+}
+export function deleteEvent(id: string) {
+  snapshot()
+  updateEvent(id, { deleted_at: nowIso() })
+}
+/** 반복 일정의 한 회차만 바꾸거나 지운다 */
+export function setException(
+  event_id: string,
+  date: string,
+  kind: EventException['kind'],
+  o: { title?: string; start?: string; end?: string } = {}
+) {
+  if (kind === 'cancelled') snapshot()
+  const rest = data.event_exceptions.filter((x) => !(x.event_id === event_id && x.original_start_at === date))
+  const ex: EventException = {
+    ...meta(),
+    event_id,
+    original_start_at: date,
+    kind,
+    override_title: o.title ?? null,
+    override_start_at: o.start ? `${date}T${o.start}` : null,
+    override_end_at: o.end ? `${date}T${o.end}` : null,
+  }
+  set({ ...data, event_exceptions: [...rest, ex] })
+}
+
+// ── 할 일 ──
+export function addTask(title: string, due_date: string) {
+  const t: Task = {
+    ...meta(),
+    title,
+    due_date,
+    due_at: null,
+    done_at: null,
+    sort_order: data.tasks.length,
+    event_id: null,
+  }
+  set({ ...data, tasks: [...data.tasks, t] })
+  return t
+}
+export function updateTask(id: string, patch: Partial<Task>) {
+  set({ ...data, tasks: data.tasks.map((t) => (t.id === id ? touch({ ...t, ...patch }) : t)) })
+}
+export function toggleTask(id: string) {
+  const t = data.tasks.find((x) => x.id === id)
+  if (t) updateTask(id, { done_at: t.done_at ? null : nowIso() })
+}
+export function deleteTask(id: string) {
+  snapshot()
+  updateTask(id, { deleted_at: nowIso() })
+}
+
+// ── 일기 (날짜마다 한 줄 1개 + 긴 일기 1개) ──
+export function entryOf(date: string, kind: JournalEntry['kind']) {
+  return data.journal_entries.find((j) => !j.deleted_at && j.local_date === date && j.kind === kind)
+}
+export function saveEntry(date: string, kind: JournalEntry['kind'], body: string) {
+  const cur = entryOf(date, kind)
+  if (cur) {
+    set({
+      ...data,
+      journal_entries: data.journal_entries.map((j) =>
+        j.id === cur.id ? touch({ ...j, body, written_at: nowIso() }) : j
+      ),
+    })
+  } else if (body.trim()) {
+    const other = entryOf(date, kind === 'line' ? 'long' : 'line')
+    const j: JournalEntry = {
+      ...meta(),
+      local_date: date,
+      kind,
+      body,
+      mood: other?.mood ?? null,
+      written_at: nowIso(),
+    }
+    set({ ...data, journal_entries: [...data.journal_entries, j] })
+  }
+}
+/** 기분은 그날의 기록 전체에 붙는다 (한 줄·긴 일기 모두) */
+export function setMood(date: string, mood: number | null) {
+  const has = data.journal_entries.some((j) => !j.deleted_at && j.local_date === date)
+  if (!has) {
+    const j: JournalEntry = { ...meta(), local_date: date, kind: 'line', body: '', mood, written_at: nowIso() }
+    set({ ...data, journal_entries: [...data.journal_entries, j] })
+    return
+  }
+  set({
+    ...data,
+    journal_entries: data.journal_entries.map((j) =>
+      !j.deleted_at && j.local_date === date ? touch({ ...j, mood }) : j
+    ),
+  })
+}
+export function moodOn(date: string) {
+  return data.journal_entries.find((j) => !j.deleted_at && j.local_date === date && j.mood)?.mood ?? null
+}
+
+// ── 전체 ──
+export function resetSample() {
+  snapshot()
+  set(sampleData(logicalToday(data.settings.day_start_hour)))
+}
+export function replaceAll(d: Data) {
+  snapshot()
+  set(d)
+}
