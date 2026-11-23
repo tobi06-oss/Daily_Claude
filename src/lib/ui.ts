@@ -2,9 +2,10 @@ import { useSyncExternalStore } from 'react'
 
 // 화면 간 공유하는 가벼운 UI 상태: 토스트, 열린 시트
 export type SheetState =
-  | { kind: 'capture'; type?: 'event' | 'task' | 'journal' }
+  | { kind: 'capture'; type?: 'event' | 'task' | 'journal' | 'goal' }
   | { kind: 'event'; eventId: string | null; date: string; start?: string }
   | { kind: 'task'; taskId: string }
+  | { kind: 'goal'; goalId: string | null }
   | { kind: 'settings' }
   | null
 

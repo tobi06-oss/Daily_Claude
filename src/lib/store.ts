@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { logicalToday, nowIso, uid } from './date'
 import { sampleData } from './sample'
-import type { Data, EventException, EventItem, JournalEntry, Task } from './types'
+import type { ColorKey, Data, EventException, EventItem, Goal, GoalCheck, JournalEntry, Task } from './types'
 
 const KEY = 'lifeplanner.v1'
 
@@ -182,6 +182,35 @@ export function setMood(date: string, mood: number | null) {
 }
 export function moodOn(date: string) {
   return data.journal_entries.find((j) => !j.deleted_at && j.local_date === date && j.mood)?.mood ?? null
+}
+
+// ── 주 N회 목표 ──
+export function addGoal(title: string, per_week: number, color_key: ColorKey = 'sage') {
+  const goals = data.goals ?? []
+  const g: Goal = { ...meta(), title, per_week, color_key, sort_order: goals.length }
+  set({ ...data, goals: [...goals, g] })
+  return g
+}
+export function updateGoal(id: string, patch: Partial<Goal>) {
+  set({ ...data, goals: (data.goals ?? []).map((g) => (g.id === id ? touch({ ...g, ...patch }) : g)) })
+}
+export function deleteGoal(id: string) {
+  snapshot()
+  updateGoal(id, { deleted_at: nowIso() })
+}
+export function isChecked(goalId: string, date: string) {
+  return (data.goal_checks ?? []).some((c) => !c.deleted_at && c.goal_id === goalId && c.local_date === date)
+}
+export function toggleGoalCheck(goal_id: string, local_date: string) {
+  const checks = data.goal_checks ?? []
+  const cur = checks.find((c) => !c.deleted_at && c.goal_id === goal_id && c.local_date === local_date)
+  if (cur) {
+    set({ ...data, goal_checks: checks.map((c) => (c.id === cur.id ? touch({ ...c, deleted_at: nowIso() }) : c)) })
+    return false
+  }
+  const c: GoalCheck = { ...meta(), goal_id, local_date }
+  set({ ...data, goal_checks: [...checks, c] })
+  return true
 }
 
 // ── 전체 ──

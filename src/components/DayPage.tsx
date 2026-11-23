@@ -4,6 +4,7 @@ import { occurrencesOn, ruleLabel } from '../lib/recur'
 import { entryOf, moodOn, saveEntry, setMood, toggleTask, updateTask, useData } from '../lib/store'
 import { MOODS, moodOf, type Task } from '../lib/types'
 import { haptic, openSheet, toast } from '../lib/ui'
+import { GoalsBlock } from './Goals'
 import { greeting, NowCard } from './NowCard'
 import { WeekStrip } from './WeekStrip'
 
@@ -127,6 +128,8 @@ export function DayPage({ date, today, onDate, compact }: Props) {
         )}
         {tasks.length > 0 && <p className="swipe-hint">밀어서 → 완료 · ← 내일로</p>}
       </div>
+
+      <GoalsBlock date={date} today={today} />
 
       {/* 일기 */}
       <Journal key={date} date={date} today={today} hasEvents={occ.length > 0} onDate={onDate} />

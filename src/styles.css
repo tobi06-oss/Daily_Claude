@@ -376,3 +376,34 @@ body {
 .block, .now-card, .week { animation: rise .35s ease both; }
 .now-card { animation-delay: .03s; } .block:nth-of-type(1) { animation-delay: .06s; }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+
+/* 주간 목표 */
+.goal-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 4px; }
+.goal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.goal { --gc: var(--sage); }
+.goal.c-coral { --gc: var(--coral); }
+.goal.c-sand { --gc: #B7A383; }
+.goal-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.goal-name { display: flex; flex-direction: column; text-align: left; flex: 1; min-height: 44px; justify-content: center; }
+.goal-name b { font-size: 16px; font-weight: 800; }
+.goal-name span { font-size: 12px; color: var(--sub); font-weight: 300; }
+.goal.achieved .goal-name span { color: var(--gc); font-weight: 700; }
+.goal-do { height: 36px; padding: 0 14px; border-radius: 99px; font-size: 13px; font-weight: 700; background: var(--paper-2); color: var(--ink); white-space: nowrap; transition: background .2s, color .2s; }
+.goal-do.on { background: var(--gc); color: #fff; }
+.goal-track { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
+.gd { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0; min-height: 44px; border-radius: 10px; }
+.gd span { font-size: 11px; color: var(--faint); }
+.gd i { width: 22px; height: 22px; border-radius: 50%; border: 1.6px dashed color-mix(in srgb, var(--gc) 55%, transparent); transition: all .25s; }
+.gd.on i { background: var(--gc); border: 1.6px solid var(--gc); animation: pop .3s ease; }
+.gd.today span { color: var(--ink); font-weight: 800; }
+.gd.sel { background: var(--paper-2); }
+.gd:disabled { opacity: .45; }
+.gd:disabled i { border-style: dotted; }
+.goal-bar { height: 4px; border-radius: 4px; background: color-mix(in srgb, var(--gc) 16%, transparent); margin-top: 6px; overflow: hidden; }
+.goal-bar i { display: block; height: 100%; background: var(--gc); border-radius: 4px; transition: width .5s cubic-bezier(.3, .9, .3, 1); }
+.stepper { display: flex; align-items: center; gap: 16px; }
+.stepper button { width: 44px; height: 44px; border-radius: 14px; background: var(--paper-2); font-size: 22px; font-weight: 700; }
+.stepper b { font-size: 22px; font-weight: 800; min-width: 52px; text-align: center; }
+.chips { flex-wrap: wrap; }
+.chip.on.chip-goal { background: #B7A383; color: #fff; }
+.pv-goal { border-color: #B7A383; }

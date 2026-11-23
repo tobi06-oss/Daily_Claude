@@ -49,6 +49,19 @@ export interface JournalEntry extends Meta {
   written_at: string
 }
 
+// 주 N회 목표 (설계안 v0.2에 없는 추가 제안: goals, goal_checks)
+export interface Goal extends Meta {
+  title: string
+  per_week: number // 1~7
+  color_key: ColorKey
+  sort_order: number
+}
+
+export interface GoalCheck extends Meta {
+  goal_id: string
+  local_date: string
+}
+
 export interface Settings {
   day_start_hour: number
 }
@@ -59,6 +72,8 @@ export interface Data {
   event_exceptions: EventException[]
   tasks: Task[]
   journal_entries: JournalEntry[]
+  goals?: Goal[]
+  goal_checks?: GoalCheck[]
   settings: Settings
 }
 

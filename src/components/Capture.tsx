@@ -2,16 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { addMinutes, fmtShort, fmtTime, relLabel } from '../lib/date'
 import { parseCapture, type CaptureType } from '../lib/parse'
 import { ruleLabel } from '../lib/recur'
-import { addEvent, addTask, entryOf, saveEntry } from '../lib/store'
+import { addEvent, addGoal, addTask, entryOf, saveEntry } from '../lib/store'
 import { closeSheet, haptic, toast } from '../lib/ui'
 
 const TYPES: { k: CaptureType; label: string }[] = [
   { k: 'event', label: '일정' },
   { k: 'task', label: '할 일' },
   { k: 'journal', label: '일기' },
+  { k: 'goal', label: '주간 목표' },
 ]
 
-const EXAMPLES = ['내일 오후 3시 치과', '우유 사기', '매주 월화목금 14-19 근무', '오늘 하늘이 유난히 맑았다.']
+const EXAMPLES = ['내일 오후 3시 치과', '우유 사기', '매주 월화목금 14-19 근무', '주 3회 러닝', '오늘 하늘이 유난히 맑았다.']
 
 export function Capture({ baseDate, today, initial }: { baseDate: string; today: string; initial?: CaptureType }) {
   const [text, setText] = useState('')
@@ -45,6 +46,11 @@ export function Capture({ baseDate, today, initial }: { baseDate: string; today:
         remind_minutes: [],
       })
       toast(`일정 추가 · ${fmtShort(date)} ${start}${p.rrule ? ` · ${ruleLabel(p.rrule)}` : ''}`, true)
+    } else if (type === 'goal') {
+      const per = p.perWeek ?? 3
+      const title = p.type === 'goal' ? p.title : raw
+      addGoal(title, per)
+      toast(`주간 목표 · 주 ${per}회 ${title}`, true)
     } else if (type === 'task') {
       addTask(p.type === 'task' ? p.title : raw, date)
       toast(`할 일 추가 · ${rel || fmtShort(date)}`, true)
@@ -96,12 +102,16 @@ export function Capture({ baseDate, today, initial }: { baseDate: string; today:
       {text.trim() ? (
         <div className={`preview pv-${type}`} aria-live="polite">
           <span className="pv-title">{type === 'journal' ? '한 줄 기록' : p.title || text}</span>
+          {type === 'goal' ? (
+            <span className="pv-meta">일주일에 {p.perWeek ?? 3}번 · 매주 새로 시작</span>
+          ) : (
           <span className="pv-meta">
             {rel ? `${rel} · ` : ''}
             {fmtShort(date)}
             {type === 'event' && start && ` · ${fmtTime(start)}${end ? `–${fmtTime(end)}` : ''}`}
             {type === 'event' && p.rrule && ` · ${ruleLabel(p.rrule)}`}
           </span>
+          )}
         </div>
       ) : (
         <div className="examples">
@@ -114,7 +124,7 @@ export function Capture({ baseDate, today, initial }: { baseDate: string; today:
       )}
 
       <button className="primary wide" disabled={!text.trim()} onClick={save}>
-        {type === 'event' ? '일정 추가' : type === 'task' ? '할 일 추가' : '일기에 남기기'}
+        {{ event: '일정 추가', task: '할 일 추가', journal: '일기에 남기기', goal: '목표 만들기' }[type]}
       </button>
       <p className="hint">Enter로 저장 · 종류가 틀리면 위에서 바꿔 주세요</p>
     </div>

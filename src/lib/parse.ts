@@ -1,7 +1,7 @@
 import { addDays, pad, toDate, weekday } from './date'
 import { makeRule } from './recur'
 
-export type CaptureType = 'event' | 'task' | 'journal'
+export type CaptureType = 'event' | 'task' | 'journal' | 'goal'
 
 export interface Parsed {
   type: CaptureType
@@ -10,6 +10,7 @@ export interface Parsed {
   start: string | null // 'HH:mm'
   end: string | null
   rrule: string | null
+  perWeek: number | null
 }
 
 const WK = '일월화수목금토'
@@ -45,8 +46,15 @@ export function parseCapture(raw: string, today: string): Parsed {
     return m
   }
 
-  // 반복: 매일 / 매월 / 매주 월화목금
+  // 주 N회 목표: "주 3회 러닝", "일주일에 2번 수영"
   let m: RegExpMatchArray | null
+  if ((m = text.match(/(?:주|일주일에|한\s*주에?)\s*(\d)\s*(?:회|번)/))) {
+    const n = Math.min(7, Math.max(1, +m[1]))
+    const title = text.replace(m[0], ' ').replace(/(목표|하기)\s*$/, '').replace(/\s+/g, ' ').trim() || text
+    return { type: 'goal', title, date: null, start: null, end: null, rrule: null, perWeek: n }
+  }
+
+  // 반복: 매일 / 매월 / 매주 월화목금
   if ((m = cut(/매주\s*((?:[월화수목금토일][요일]*[,·\s]*)+)/))) {
     const days = [...m[1].replace(/요일/g, '')].map((c) => WK.indexOf(c)).filter((n) => n >= 0)
     if (days.length) rrule = makeRule('weekly', days)
@@ -111,7 +119,7 @@ export function parseCapture(raw: string, today: string): Parsed {
   else type = 'task'
 
   if (type === 'journal') title = text
-  return { type, title, date, start, end, rrule }
+  return { type, title, date, start, end, rrule, perWeek: null }
 }
 
 export function describeParsed(p: Parsed, fallbackDate: string) {

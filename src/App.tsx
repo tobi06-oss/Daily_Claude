@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Capture } from './components/Capture'
 import { DayPage } from './components/DayPage'
 import { EventEditor } from './components/EventEditor'
+import { GoalEditor } from './components/Goals'
 import { JournalList } from './components/JournalList'
 import { MonthGrid } from './components/MonthGrid'
 import { Sheet } from './components/Sheet'
@@ -161,6 +162,11 @@ export default function App() {
       {ui.sheet?.kind === 'task' && (
         <Sheet title="할 일" onClose={closeSheet}>
           <TaskEditor taskId={ui.sheet.taskId} />
+        </Sheet>
+      )}
+      {ui.sheet?.kind === 'goal' && (
+        <Sheet title={ui.sheet.goalId ? '목표' : '새 목표'} onClose={closeSheet}>
+          <GoalEditor goalId={ui.sheet.goalId} />
         </Sheet>
       )}
       {ui.sheet?.kind === 'settings' && (
