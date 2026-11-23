@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
-import { logicalToday, nowIso, uid } from './date'
+import { addDays, logicalToday, nowIso, pad, uid, ymd } from './date'
 import { sampleData } from './sample'
-import type { ColorKey, Data, EventException, EventItem, Goal, GoalCheck, JournalEntry, Task } from './types'
+import type { ColorKey, Data, EventException, EventItem, Goal, GoalCheck, JournalEntry, SleepLog, Task } from './types'
 
 const KEY = 'lifeplanner.v1'
 
@@ -220,6 +220,47 @@ export function goalForTitle(title: string) {
 }
 export function setDayStart(h: number) {
   set({ ...data, settings: { ...data.settings, day_start_hour: h } })
+}
+
+// ── 기상·취침 ──
+const localNow = () => {
+  const d = new Date()
+  return `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+/** 실제 시각 → 하루 시작 시각 기준 날짜 */
+export function logicalDateOf(at: string) {
+  const h = Number(at.slice(11, 13))
+  const day = at.slice(0, 10)
+  return h < data.settings.day_start_hour ? addDays(day, -1) : day
+}
+export function sleepOf(local_date: string, kind: SleepLog['kind']) {
+  return (data.sleep_logs ?? []).find((l) => !l.deleted_at && l.local_date === local_date && l.kind === kind)
+}
+/** 기록(같은 날 같은 종류가 있으면 덮어씀) */
+export function logSleep(kind: SleepLog['kind'], at = localNow(), source: SleepLog['source'] = 'app') {
+  const local_date = logicalDateOf(at)
+  const logs = data.sleep_logs ?? []
+  const cur = logs.find((l) => !l.deleted_at && l.local_date === local_date && l.kind === kind)
+  snapshot()
+  if (cur) {
+    set({ ...data, sleep_logs: logs.map((l) => (l.id === cur.id ? touch({ ...l, at, source }) : l)) })
+  } else {
+    const l: SleepLog = { ...meta(), kind, at, local_date, source }
+    set({ ...data, sleep_logs: [...logs, l] })
+  }
+  return { at, local_date }
+}
+export function removeSleep(id: string) {
+  snapshot()
+  set({ ...data, sleep_logs: (data.sleep_logs ?? []).map((l) => (l.id === id ? touch({ ...l, deleted_at: nowIso() }) : l)) })
+}
+/** 그날 아침까지의 수면 시간(분): 전날 취침 → 그날 기상 */
+export function sleepMinutes(local_date: string) {
+  const w = sleepOf(local_date, 'wake')
+  const s = sleepOf(addDays(local_date, -1), 'sleep')
+  if (!w || !s) return null
+  const mins = (new Date(w.at).getTime() - new Date(s.at).getTime()) / 60000
+  return mins > 0 && mins < 18 * 60 ? Math.round(mins) : null
 }
 
 // ── 전체 ──

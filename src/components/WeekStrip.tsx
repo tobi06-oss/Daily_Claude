@@ -1,6 +1,6 @@
 import { addDays, toDate, weekday } from '../lib/date'
 import { occurrencesOn } from '../lib/recur'
-import { moodOn, useData } from '../lib/store'
+import { moodOn, sleepMinutes, useData } from '../lib/store'
 import { moodOf } from '../lib/types'
 
 /** 고른 날이 들어 있는 한 주(일~토). 요일을 눌러 바로 이동 */
@@ -14,6 +14,7 @@ export function WeekStrip({ date, today, onPick }: { date: string; today: string
         const m = moodOf(moodOn(d))
         const n = occurrencesOn(data, d).length
         const dow = toDate(d).getDay()
+        const sl = sleepMinutes(d)
         return (
           <button
             key={d}
@@ -28,6 +29,7 @@ export function WeekStrip({ date, today, onPick }: { date: string; today: string
             <span className="wd-dot" aria-hidden>
               {m ? <i className="m" /> : n > 0 ? <i /> : null}
             </span>
+            <span className="wd-sl">{sl ? `${(sl / 60).toFixed(1)}h` : ''}</span>
           </button>
         )
       })}

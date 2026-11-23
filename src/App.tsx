@@ -3,12 +3,13 @@ import { Capture } from './components/Capture'
 import { DayPage } from './components/DayPage'
 import { EventEditor } from './components/EventEditor'
 import { GoalEditor } from './components/Goals'
+import { SleepEditor } from './components/Sleep'
 import { JournalList } from './components/JournalList'
 import { MonthGrid } from './components/MonthGrid'
 import { Sheet } from './components/Sheet'
 import { TaskEditor } from './components/TaskEditor'
 import { addDays, logicalToday } from './lib/date'
-import { getData, replaceAll, resetSample, setDayStart, undo, useData } from './lib/store'
+import { getData, logSleep, replaceAll, resetSample, setDayStart, undo, useData } from './lib/store'
 import type { Data } from './lib/types'
 import { closeSheet, hideToast, openSheet, toast, useUI } from './lib/ui'
 
@@ -63,7 +64,12 @@ export default function App() {
   useEffect(() => {
     const go = () => {
       const h = location.hash
-      if (h === '#write' || h === '#add') {
+      if (h === '#wake' || h === '#sleep') {
+        const r = logSleep(h === '#wake' ? 'wake' : 'sleep', undefined, 'shortcut')
+        goToday()
+        toast(`${h === '#wake' ? '좋은 아침이에요 · 기상' : '잘 자요 · 취침'} ${r.at.slice(11, 16)} 기록`, true)
+        history.replaceState(null, '', location.pathname + location.search)
+      } else if (h === '#write' || h === '#add') {
         goToday()
         openSheet({ kind: 'capture', type: h === '#write' ? 'journal' : undefined })
         history.replaceState(null, '', location.pathname + location.search)
@@ -185,6 +191,11 @@ export default function App() {
           <GoalEditor goalId={ui.sheet.goalId} />
         </Sheet>
       )}
+      {ui.sheet?.kind === 'sleep' && (
+        <Sheet title="기상·취침 시간" onClose={closeSheet}>
+          <SleepEditor date={ui.sheet.date} />
+        </Sheet>
+      )}
       {ui.sheet?.kind === 'settings' && (
         <Sheet title="설정" onClose={closeSheet}>
           <Settings />
@@ -271,6 +282,8 @@ function Settings() {
 
       <div className="field">
         <span>잠금화면에서 바로 쓰기 (단축어)</span>
+        <ShortcutRow label="기상 기록" hash="#wake" />
+        <ShortcutRow label="취침 기록" hash="#sleep" />
         <ShortcutRow label="한 줄 일기" hash="#write" />
         <ShortcutRow label="빠른 입력" hash="#add" />
         <ol className="help steps">

@@ -6,6 +6,7 @@ export type SheetState =
   | { kind: 'event'; eventId: string | null; date: string; start?: string }
   | { kind: 'task'; taskId: string }
   | { kind: 'goal'; goalId: string | null }
+  | { kind: 'sleep'; date: string }
   | { kind: 'settings' }
   | null
 

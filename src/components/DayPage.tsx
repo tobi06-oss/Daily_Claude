@@ -6,6 +6,7 @@ import { MOODS, moodOf, type Task } from '../lib/types'
 import { haptic, openSheet, toast } from '../lib/ui'
 import { GoalsBlock } from './Goals'
 import { greeting, NowCard } from './NowCard'
+import { SleepRow } from './Sleep'
 import { WeekStrip } from './WeekStrip'
 
 interface Props {
@@ -55,6 +56,7 @@ export function DayPage({ date, today, onDate, compact }: Props) {
       </header>
 
       {!compact && <WeekStrip date={date} today={today} onPick={onDate} />}
+      {date <= today && <SleepRow date={date} today={today} />}
       {isToday && !compact && <NowCard today={today} />}
 
       {/* 일정 */}

@@ -62,6 +62,14 @@ export interface GoalCheck extends Meta {
   local_date: string
 }
 
+// 기상·취침 기록 (추가 제안: sleep_logs). at은 실제 시각, local_date는 "하루 시작 시각" 기준 날짜
+export interface SleepLog extends Meta {
+  kind: 'wake' | 'sleep'
+  at: string // 'YYYY-MM-DDTHH:mm'
+  local_date: string
+  source: 'app' | 'shortcut'
+}
+
 export interface Settings {
   day_start_hour: number
 }
@@ -74,6 +82,7 @@ export interface Data {
   journal_entries: JournalEntry[]
   goals?: Goal[]
   goal_checks?: GoalCheck[]
+  sleep_logs?: SleepLog[]
   settings: Settings
 }
 

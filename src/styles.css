@@ -429,3 +429,26 @@ body {
 .sc-row div { display: flex; flex-direction: column; min-width: 0; }
 .sc-row b { font-size: 14px; }
 .sc-row code { font-size: 11px; color: var(--sub); overflow-wrap: anywhere; font-family: ui-monospace, monospace; }
+
+/* 기상·취침 */
+.sleep { margin-bottom: 14px; }
+.sleep-row { display: flex; gap: 8px; align-items: stretch; }
+.sl { flex: 1; display: flex; align-items: center; gap: 10px; background: var(--paper); border-radius: 16px; padding: 10px 12px; box-shadow: var(--shadow); min-height: 56px; text-align: left; }
+.sl-ic { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; flex: none; }
+.sl-ic.wake { background: color-mix(in srgb, #E3C27A 30%, transparent); color: #A9822F; }
+.sl-ic.night { background: color-mix(in srgb, #7D8AA6 26%, transparent); color: #5E6B88; }
+.sl-t { display: flex; flex-direction: column; line-height: 1.2; }
+.sl-t small { font-size: 11px; color: var(--sub); font-weight: 300; }
+.sl-t b { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--faint); }
+.sl.set .sl-t b { color: var(--ink); }
+.sl-do { flex: none; display: flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 16px; font-weight: 800; font-size: 14px; color: #fff; min-height: 56px; box-shadow: var(--shadow); animation: rise .35s ease both; }
+.sl-do.wake { background: #D9AE52; }
+.sl-do.sleep { background: #6E7B98; }
+.sleep-sum { font-size: 12px; color: var(--sub); padding: 8px 4px 0; font-weight: 300; }
+.wd { height: 76px; }
+.wd-sl { font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; height: 12px; line-height: 12px; }
+.wd.sel .wd-sl { color: var(--bg); opacity: .7; }
+@media (prefers-color-scheme: dark) {
+  .sl-ic.wake { color: #E3C27A; } .sl-ic.night { color: #A9B5CF; }
+  .sl-do.wake { background: #B89042; } .sl-do.sleep { background: #56627D; }
+}
