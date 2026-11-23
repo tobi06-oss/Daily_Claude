@@ -8,7 +8,7 @@ import { MonthGrid } from './components/MonthGrid'
 import { Sheet } from './components/Sheet'
 import { TaskEditor } from './components/TaskEditor'
 import { addDays, logicalToday } from './lib/date'
-import { getData, replaceAll, resetSample, undo, useData } from './lib/store'
+import { getData, replaceAll, resetSample, setDayStart, undo, useData } from './lib/store'
 import type { Data } from './lib/types'
 import { closeSheet, hideToast, openSheet, toast, useUI } from './lib/ui'
 
@@ -58,6 +58,22 @@ export default function App() {
     pick(today)
     setView('today')
   }, [pick, today])
+
+  // 잠금화면 단축어용 바로가기: 주소 끝 #write(한 줄 일기) / #add(빠른 입력)
+  useEffect(() => {
+    const go = () => {
+      const h = location.hash
+      if (h === '#write' || h === '#add') {
+        goToday()
+        openSheet({ kind: 'capture', type: h === '#write' ? 'journal' : undefined })
+        history.replaceState(null, '', location.pathname + location.search)
+      }
+    }
+    go()
+    window.addEventListener('hashchange', go)
+    return () => window.removeEventListener('hashchange', go)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 데스크톱 단축키: N 새 입력, T 오늘, ←/→ 날짜 이동
   useEffect(() => {
@@ -233,6 +249,39 @@ function Settings() {
       <p className="note">
         Phase 1 시안이라 기록은 <b>이 기기의 브라우저에만</b> 저장돼요. 동기화는 통합 단계에서 붙어요.
       </p>
+
+      <label className="field">
+        <span>하루 시작 시각</span>
+        <select
+          className="select"
+          value={data.settings.day_start_hour}
+          onChange={(e) => {
+            setDayStart(Number(e.target.value))
+            toast('하루 시작 시각을 바꿨어요')
+          }}
+        >
+          {[0, 1, 2, 3, 4, 5, 6].map((h) => (
+            <option key={h} value={h}>
+              {h === 0 ? '자정 (0시)' : `새벽 ${h}시`}
+            </option>
+          ))}
+        </select>
+        <small className="help">이 시각 전에 쓴 기록은 전날로 들어가요. 늦게 자는 날에도 하루가 끊기지 않게.</small>
+      </label>
+
+      <div className="field">
+        <span>잠금화면에서 바로 쓰기 (단축어)</span>
+        <ShortcutRow label="한 줄 일기" hash="#write" />
+        <ShortcutRow label="빠른 입력" hash="#add" />
+        <ol className="help steps">
+          <li>위 주소를 복사해요.</li>
+          <li>단축어 앱 → 새 단축어 → <b>URL 열기</b>에 붙여 넣어요.</li>
+          <li>설정 → 배경화면 → 잠금화면 편집 → 아래 버튼을 그 단축어로 바꿔요. (iOS 18 이상)</li>
+        </ol>
+        <small className="help">
+          참고: 단축어는 사파리로 열려서, 지금 시안에서는 홈 화면 앱과 기록이 따로 저장될 수 있어요. 동기화가 붙는 통합 단계부터 하나로 이어져요.
+        </small>
+      </div>
       <button
         className="secondary wide"
         onClick={async () => {
@@ -277,6 +326,32 @@ function Settings() {
         }}
       >
         샘플 데이터로 초기화
+      </button>
+    </div>
+  )
+}
+
+function ShortcutRow({ label, hash }: { label: string; hash: string }) {
+  const url = `${location.origin}${location.pathname}${hash}`
+  return (
+    <div className="sc-row">
+      <div>
+        <b>{label}</b>
+        <code>{url}</code>
+      </div>
+      <button
+        type="button"
+        className="pill"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(url)
+            toast('주소를 복사했어요')
+          } catch {
+            toast('복사가 안 돼요. 주소를 길게 눌러 복사해 주세요')
+          }
+        }}
+      >
+        복사
       </button>
     </div>
   )

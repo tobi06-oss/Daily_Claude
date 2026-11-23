@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { addDays, fmtLong, fmtTime, fmtWeekday, relLabel, toDate, ymd } from '../lib/date'
 import { occurrencesOn, ruleLabel } from '../lib/recur'
-import { entryOf, moodOn, saveEntry, setMood, toggleTask, updateTask, useData } from '../lib/store'
+import { entryOf, goalForTitle, isChecked, moodOn, saveEntry, setMood, toggleGoalCheck, toggleTask, updateTask, useData } from '../lib/store'
 import { MOODS, moodOf, type Task } from '../lib/types'
 import { haptic, openSheet, toast } from '../lib/ui'
 import { GoalsBlock } from './Goals'
@@ -72,10 +72,30 @@ export function DayPage({ date, today, onDate, compact }: Props) {
             {occ.map((o) => {
               const now = isToday && !o.event.all_day && o.start <= nowHM && nowHM < o.end
               const past = isToday && !o.event.all_day && o.end <= nowHM
+              const goal = goalForTitle(o.title)
+              const checked = goal ? isChecked(goal.id, date) : false
+              const ended = date < today || (isToday && !o.event.all_day && o.end <= nowHM)
               return (
-                <li key={o.event.id}>
+                <li key={o.event.id} className={goal ? 'has-goal' : ''}>
+                  {goal && date <= today && (
+                    <button
+                      className={`ev-goal ${checked ? 'on' : ''} ${ended && !checked ? 'ask' : ''}`}
+                      aria-pressed={checked}
+                      aria-label={`${goal.title} 목표 ${checked ? '체크 취소' : '체크'}`}
+                      onClick={() => {
+                        const on = toggleGoalCheck(goal.id, date)
+                        haptic()
+                        toast(on ? `${goal.title} 목표에 체크했어요` : `${goal.title} 체크를 지웠어요`)
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden>
+                        <path d="M6 12.5l4 4 8-9" />
+                      </svg>
+                      {ended && !checked && <span>했나요?</span>}
+                    </button>
+                  )}
                   <button
-                    className={`ev c-${o.event.color_key} ${now ? 'now' : ''} ${past ? 'past' : ''}`}
+                    className={`ev c-${o.event.color_key} ${now ? 'now' : ''} ${past && !checked ? 'past' : ''}`}
                     onClick={() => openSheet({ kind: 'event', eventId: o.event.id, date })}
                   >
                     <span className="ev-time">
@@ -91,6 +111,7 @@ export function DayPage({ date, today, onDate, compact }: Props) {
                           {o.event.rrule && ruleLabel(o.event.rrule)}
                         </span>
                       )}
+                      {goal && <span className="ev-sub goal-link">주 {goal.per_week}회 {goal.title} 목표와 연결</span>}
                     </span>
                   </button>
                 </li>
@@ -262,7 +283,10 @@ function Journal({ date, today, hasEvents, onDate }: { date: string; today: stri
 
       {evening && (
         <div className="evening">
-          <p>{hasEvents ? '오늘 하루는 어땠어요? 한 줄이면 충분해요.' : '오늘을 한 줄로 남겨 볼까요?'}</p>
+          <div>
+            <p>{hasEvents ? '오늘 하루는 어땠어요? 한 줄이면 충분해요.' : '오늘을 한 줄로 남겨 볼까요?'}</p>
+            <DaySummary date={date} />
+          </div>
           <button className="pill" onClick={() => lineRef.current?.focus()}>
             한 줄 쓰기
           </button>
@@ -332,6 +356,17 @@ function Journal({ date, today, hasEvents, onDate }: { date: string; today: stri
       <Capsule date={date} onDate={onDate} />
     </div>
   )
+}
+
+function DaySummary({ date }: { date: string }) {
+  const data = useData()
+  const ev = occurrencesOn(data, date).length
+  const ts = data.tasks.filter((t) => !t.deleted_at && t.due_date === date)
+  const done = ts.filter((t) => t.done_at).length
+  const goals = (data.goals ?? []).filter((g) => !g.deleted_at && isChecked(g.id, date))
+  const parts = [ev ? `일정 ${ev}` : '', ts.length ? `할 일 ${done}/${ts.length}` : '', ...goals.map((g) => `${g.title} ✓`)].filter(Boolean)
+  if (!parts.length) return null
+  return <p className="summary">{parts.join(' · ')}</p>
 }
 
 const PROMPTS = [

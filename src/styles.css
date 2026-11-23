@@ -407,3 +407,25 @@ body {
 .chips { flex-wrap: wrap; }
 .chip.on.chip-goal { background: #B7A383; color: #fff; }
 .pv-goal { border-color: #B7A383; }
+
+/* 일정 ↔ 목표 연결 */
+.timeline li { position: relative; }
+.timeline li.has-goal .ev { padding-right: 56px; }
+.ev-goal { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); z-index: 1; height: 44px; min-width: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 8px; }
+.ev-goal svg { width: 26px; height: 26px; border-radius: 50%; border: 1.8px dashed var(--sage); fill: none; stroke: transparent; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; transition: all .2s; }
+.ev-goal.on svg { background: var(--sage); border: 1.8px solid var(--sage); stroke: #fff; animation: pop .3s ease; }
+.ev-goal.ask { background: var(--coral-soft); }
+.ev-goal.ask svg { border-color: var(--coral); }
+.ev-goal span { font-size: 12px; font-weight: 700; color: var(--coral); white-space: nowrap; }
+.timeline li.has-goal .ev-goal.ask ~ .ev { padding-right: 104px; }
+.goal-link { color: var(--sage) !important; font-weight: 700 !important; }
+.summary { font-size: 12px; color: var(--sub); margin-top: 2px; font-weight: 700; }
+
+/* 설정 */
+.select { height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--paper); padding: 0 12px; font-size: 16px; }
+.help { font-size: 12px; color: var(--sub); font-weight: 300; line-height: 1.6; }
+.steps { margin: 4px 0 0; padding-left: 18px; }
+.sc-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--paper); border-radius: 12px; padding: 10px 12px; }
+.sc-row div { display: flex; flex-direction: column; min-width: 0; }
+.sc-row b { font-size: 14px; }
+.sc-row code { font-size: 11px; color: var(--sub); overflow-wrap: anywhere; font-family: ui-monospace, monospace; }

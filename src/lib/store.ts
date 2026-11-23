@@ -213,6 +213,15 @@ export function toggleGoalCheck(goal_id: string, local_date: string) {
   return true
 }
 
+/** 일정 제목에 목표 이름이 들어 있으면 연결 ("저녁 러닝" ↔ "러닝") */
+export function goalForTitle(title: string) {
+  const t = title.replace(/\s+/g, '').toLowerCase()
+  return (data.goals ?? []).find((g) => !g.deleted_at && g.title.trim() && t.includes(g.title.replace(/\s+/g, '').toLowerCase()))
+}
+export function setDayStart(h: number) {
+  set({ ...data, settings: { ...data.settings, day_start_hour: h } })
+}
+
 // ── 전체 ──
 export function resetSample() {
   snapshot()
