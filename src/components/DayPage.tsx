@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react'
-import { addDays, fmtLong, fmtTime, fmtWeekday, relLabel } from '../lib/date'
+import { addDays, fmtLong, fmtTime, fmtWeekday, relLabel, toDate, ymd } from '../lib/date'
 import { occurrencesOn, ruleLabel } from '../lib/recur'
 import { entryOf, moodOn, saveEntry, setMood, toggleTask, updateTask, useData } from '../lib/store'
 import { MOODS, moodOf, type Task } from '../lib/types'
 import { haptic, openSheet, toast } from '../lib/ui'
+import { greeting, NowCard } from './NowCard'
+import { WeekStrip } from './WeekStrip'
 
 interface Props {
   date: string
@@ -29,7 +31,7 @@ export function DayPage({ date, today, onDate, compact }: Props) {
     <section className={`day ${compact ? 'compact' : ''}`} aria-label={`${fmtLong(date)} 하루`}>
       <header className="day-head">
         <div>
-          {!compact && <p className="day-rel">{rel || fmtWeekday(date)}</p>}
+          {!compact && <p className="day-rel">{isToday ? greeting(new Date().getHours()) : rel || fmtWeekday(date)}</p>}
           <h1 className="day-date">{fmtLong(date)}</h1>
           <p className="day-wd">
             {fmtWeekday(date)}
@@ -50,6 +52,9 @@ export function DayPage({ date, today, onDate, compact }: Props) {
           </button>
         </div>
       </header>
+
+      {!compact && <WeekStrip date={date} today={today} onPick={onDate} />}
+      {isToday && !compact && <NowCard today={today} />}
 
       {/* 일정 */}
       <div className="block">
@@ -124,7 +129,7 @@ export function DayPage({ date, today, onDate, compact }: Props) {
       </div>
 
       {/* 일기 */}
-      <Journal key={date} date={date} today={today} hasEvents={occ.length > 0} />
+      <Journal key={date} date={date} today={today} hasEvents={occ.length > 0} onDate={onDate} />
     </section>
   )
 }
@@ -213,8 +218,10 @@ function TaskRow({ t, today, late }: { t: Task; today: string; late?: boolean })
   )
 }
 
-function Journal({ date, today, hasEvents }: { date: string; today: string; hasEvents: boolean }) {
-  useData()
+function Journal({ date, today, hasEvents, onDate }: { date: string; today: string; hasEvents: boolean; onDate: (d: string) => void }) {
+  const data = useData()
+  const streak = streakUntil(data, today)
+  const question = PROMPTS[hashDay(date) % PROMPTS.length]
   const line = entryOf(date, 'line')
   const long = entryOf(date, 'long')
   const mood = moodOn(date)
@@ -241,7 +248,10 @@ function Journal({ date, today, hasEvents }: { date: string; today: string; hasE
   return (
     <div className="block journal" style={m ? ({ '--mood': m.color } as React.CSSProperties) : undefined}>
       <div className="block-head">
-        <h3>일기</h3>
+        <h3>
+          일기
+          {date === today && streak >= 2 && <span className="streak">{streak}일째 기록 중</span>}
+        </h3>
         <span className="saved" aria-live="polite">
           {saved === 'saving' ? '쓰는 중…' : saved === 'saved' ? '저장됨' : ''}
         </span>
@@ -260,7 +270,7 @@ function Journal({ date, today, hasEvents }: { date: string; today: string; hasE
         ref={lineRef}
         className="line-input"
         rows={1}
-        placeholder={date === today ? '오늘의 한 줄' : '이날의 한 줄'}
+        placeholder={date === today ? question : '이날의 한 줄'}
         value={lineTxt}
         maxLength={120}
         onChange={(e) => {
@@ -315,6 +325,80 @@ function Journal({ date, today, hasEvents }: { date: string; today: string; hasE
           ))}
         </div>
       )}
+
+      <Capsule date={date} onDate={onDate} />
+    </div>
+  )
+}
+
+const PROMPTS = [
+  '오늘 가장 좋았던 순간은?',
+  '오늘 나를 웃게 한 것은?',
+  '오늘 고마웠던 사람은?',
+  '오늘 새로 알게 된 것은?',
+  '오늘 몸과 마음은 어땠나요?',
+  '오늘 잘 해낸 작은 일은?',
+  '오늘 기억하고 싶은 장면은?',
+  '오늘 아쉬웠던 것 하나는?',
+  '내일의 나에게 한마디',
+  '오늘을 한 단어로 표현하면?',
+]
+const hashDay = (d: string) => [...d].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7)
+
+/** 오늘(또는 어제)부터 거꾸로, 일기를 쓴 날이 며칠 이어졌는지 */
+function streakUntil(data: ReturnType<typeof useData>, today: string) {
+  const wrote = new Set(data.journal_entries.filter((j) => !j.deleted_at && j.body.trim()).map((j) => j.local_date))
+  let d = wrote.has(today) ? today : addDays(today, -1)
+  let n = 0
+  while (wrote.has(d)) {
+    n++
+    d = addDays(d, -1)
+  }
+  return n
+}
+
+/** 지난 오늘: 1주 전 · 1달 전 · 1년 전 같은 날의 기록 */
+function Capsule({ date, onDate }: { date: string; onDate: (d: string) => void }) {
+  const data = useData()
+  const shift = (months: number, years: number) => {
+    const d = toDate(date)
+    const t = new Date(d.getFullYear() - years, d.getMonth() - months, d.getDate())
+    return t.getDate() === d.getDate() ? ymd(t) : null
+  }
+  const cands = [
+    { label: '1주 전', d: addDays(date, -7) },
+    { label: '1달 전', d: shift(1, 0) },
+    { label: '1년 전', d: shift(0, 1) },
+  ]
+    .filter((c): c is { label: string; d: string } => !!c.d)
+    .map((c) => {
+      const es = data.journal_entries.filter((j) => !j.deleted_at && j.local_date === c.d && j.body.trim())
+      const line = es.find((j) => j.kind === 'line')?.body || es[0]?.body
+      const mood = es.find((j) => j.mood)?.mood ?? null
+      return { ...c, line, mood }
+    })
+    .filter((c) => c.line)
+  const [i, setI] = useState(0)
+  if (!cands.length) return null
+  const c = cands[Math.min(i, cands.length - 1)]
+  const m = moodOf(c.mood)
+  return (
+    <div className="capsule" style={m ? ({ '--mood': m.color } as React.CSSProperties) : undefined}>
+      <div className="capsule-tabs">
+        <span className="capsule-k">지난 오늘</span>
+        {cands.map((x, k) => (
+          <button key={x.label} className={k === i ? 'on' : ''} onClick={() => setI(k)}>
+            {x.label}
+          </button>
+        ))}
+      </div>
+      <button className="capsule-body" onClick={() => onDate(c.d)}>
+        <span className="capsule-line">“{c.line}”</span>
+        <span className="capsule-meta">
+          {fmtLong(c.d)} {fmtWeekday(c.d)}
+          {m && ` · ${m.name}`}
+        </span>
+      </button>
     </div>
   )
 }

@@ -306,3 +306,73 @@ kbd { font: inherit; font-weight: 700; color: var(--sub); background: var(--pape
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ── v1.1: 덜 단조롭게 ── */
+/* 종이 질감 (아주 옅게) */
+body {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .3 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: dark) {
+  body { background-image: none; }
+}
+
+/* 이번 주 한 줄 */
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: -4px 0 14px; }
+.wd { height: 64px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--sub); transition: background .2s; }
+.wd-l { font-size: 11px; font-weight: 300; }
+.wd-n { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+.wd.sun .wd-l, .wd.sun .wd-n { color: var(--coral); }
+.wd-dot { height: 6px; display: flex; }
+.wd-dot i { width: 5px; height: 5px; border-radius: 50%; background: var(--faint); }
+.wd-dot i.m { width: 6px; height: 6px; background: var(--mood); }
+.wd.today .wd-n { text-decoration: underline 2px var(--coral); text-underline-offset: 4px; }
+.wd.sel { background: var(--ink); }
+.wd.sel .wd-l, .wd.sel .wd-n { color: var(--bg); }
+.wd.sel .wd-dot i:not(.m) { background: var(--bg); opacity: .6; }
+
+/* 지금·다음 카드 */
+.now-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  border-radius: 22px; padding: 18px 18px 18px 20px; margin-bottom: 14px;
+  background: linear-gradient(135deg, var(--sage-soft), color-mix(in srgb, var(--sage-soft) 40%, var(--paper)));
+  box-shadow: var(--shadow); position: relative; overflow: hidden;
+}
+.now-card::after { content: ''; position: absolute; right: -40px; top: -50px; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--sand) 55%, transparent), transparent 70%); pointer-events: none; }
+.now-card.now { background: linear-gradient(135deg, var(--coral-soft), color-mix(in srgb, var(--coral-soft) 35%, var(--paper))); }
+.now-card.rest { background: linear-gradient(135deg, var(--sand-soft), var(--paper)); }
+.now-text { display: flex; flex-direction: column; gap: 2px; position: relative; z-index: 1; }
+.now-label { font-size: 13px; font-weight: 800; color: var(--sage); }
+.now-card.now .now-label { color: var(--coral); }
+.now-card.now .now-label::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--coral); margin-right: 6px; vertical-align: 1px; animation: pulse 1.8s ease-in-out infinite; }
+.now-card.rest .now-label { color: var(--sub); }
+.now-title { font-size: 22px; font-weight: 800; letter-spacing: -.02em; line-height: 1.25; }
+.now-sub { font-size: 13px; color: var(--sub); font-weight: 300; }
+.ring { position: relative; width: 60px; height: 60px; flex: none; z-index: 1; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 5; }
+.ring-bg { stroke: color-mix(in srgb, var(--ink) 10%, transparent); }
+.ring-fg { stroke: var(--sage); stroke-linecap: round; transition: stroke-dashoffset .6s cubic-bezier(.3, .9, .3, 1); }
+.ring-n { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 800; font-size: 16px; font-variant-numeric: tabular-nums; }
+.ring-n small { font-size: 11px; color: var(--sub); font-weight: 400; }
+.ring-n { display: flex; align-items: center; justify-content: center; }
+@keyframes pulse { 50% { opacity: .35; } }
+
+/* 일기: 연속 기록, 지난 오늘 */
+.streak { font-size: 11px; font-weight: 700; color: var(--coral); background: var(--coral-soft); border-radius: 99px; padding: 2px 8px; }
+.capsule { margin-top: 12px; border-radius: 14px; background: var(--paper-2); padding: 10px 12px 12px; border-left: 3px solid var(--mood, var(--sand)); }
+.capsule-tabs { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.capsule-k { font-size: 12px; font-weight: 800; color: var(--sub); margin-right: auto; }
+.capsule-tabs button { font-size: 12px; color: var(--faint); padding: 4px 8px; border-radius: 99px; min-height: 28px; }
+.capsule-tabs button.on { background: var(--paper); color: var(--ink); font-weight: 700; }
+.capsule-body { display: flex; flex-direction: column; gap: 2px; text-align: left; width: 100%; padding: 2px 0; }
+.capsule-line { font-size: 15px; font-weight: 700; line-height: 1.5; }
+.capsule-meta { font-size: 12px; color: var(--sub); font-weight: 300; }
+
+/* 움직임: 기분이 물드는 달력, 체크 */
+.cell { transition: background-color .7s ease; }
+.journal { transition: box-shadow .5s ease; }
+.task.done .check svg { animation: pop .28s ease; }
+@keyframes pop { 40% { transform: scale(1.18); } }
+.block, .now-card, .week { animation: rise .35s ease both; }
+.now-card { animation-delay: .03s; } .block:nth-of-type(1) { animation-delay: .06s; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
